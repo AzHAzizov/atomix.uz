@@ -1,0 +1,49 @@
+<?php
+
+namespace Runn\Html;
+
+/**
+ * Common interface for all elements that have some options (any element, any options, not tag attributes!)
+ *
+ * Interface HasOptionsInterface
+ * @package Runn\Html
+ */
+interface HasOptionsInterface
+{
+
+    /**
+     * @param string $key
+     * @param mixed $val
+     * @return $this
+     */
+    public function setOption(string $key, $val);
+
+    /**
+     * @param string $key
+     * @return mixed|null
+     */
+    public function getOption(string $key);
+
+    /**
+     * @param string $key
+     * @return bool
+     */
+    public function issetOption(string $key): bool;
+
+    /**
+     * @param string $key
+     */
+    public function unsetOption(string $key): void;
+
+    /**
+     * @param iterable|null $options
+     * @return $this
+     */
+    public function setOptions(?iterable $options = null);
+
+    /**
+     * @return \Runn\Core\Std|null
+     */
+    public function getOptions(): ?\Runn\Core\Std;
+
+}

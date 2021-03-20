@@ -1,0 +1,201 @@
+<?php
+
+namespace Runn\tests\Html\Form\ElementsGroup;
+
+use PHPUnit\Framework\TestCase;
+use Runn\Html\Form\ElementsGroup;
+use Runn\Html\Form\Exception;
+use Runn\Html\Form\Fields\EmailField;
+use Runn\Html\Form\Fields\TextareaField;
+use Runn\Html\Form\Fields\TextField;
+use Runn\Html\ValidationError;
+use Runn\Validation\Validators\EmailValidator;
+
+class testElementsGroupSchema extends ElementsGroup {
+    protected static $schema = [
+        'foo' => [
+            'class' => TextField::class,
+        ],
+        'field1' => [
+            'class' => TextField::class,
+            'title' => 'Title One',
+            'name' => 'name1',
+            'value' => 'value1',
+        ],
+        'field2' => [
+            'class' => TextareaField::class,
+            'attributes' => ['foo' => 'bar', 'baz' => 42],
+            'options'    => ['foo' => 'bar', 'baz' => 42],
+        ],
+        'field3' => [
+            'class' => EmailField::class,
+            'validator' => EmailValidator::class,
+            'value' => 'it-is-not-email!',
+        ]
+    ];
+}
+
+class testElementsGroupNested extends ElementsGroup {
+    protected static $schema = [
+        'test' => [
+            'class' => TextField::class,
+        ],
+        'inner' => [
+            'class' => testElementsGroupSchema::class,
+        ],
+    ];
+}
+
+class ElementsGroupSchemaTest extends TestCase
+{
+
+    public function testGetSchema()
+    {
+        $prop = new \ReflectionProperty(testElementsGroupSchema::class, 'schema');
+        $prop->setAccessible(true);
+
+        $group = new testElementsGroupSchema;
+
+        $this->assertSame($prop->getValue(), $group->getSchema());
+        $this->assertSame($prop->getValue(), testElementsGroupSchema::getSchema());
+    }
+
+    public function testEmptySchema()
+    {
+        $group = new class extends ElementsGroup {};
+        $this->assertCount(0, $group);
+    }
+
+    public function testSchemaEmptyClass()
+    {
+        $this->expectException(Exception::class);
+        $this->expectExceptionMessage('Invalid group schema: class for element "foo" is missing');
+
+        $group = new class extends ElementsGroup {
+            protected static $schema = [
+                'foo' => [
+                    'noclass' => 'empty',
+                ],
+            ];
+        };
+    }
+
+    public function testSchemaInvalidClass()
+    {
+        $this->expectException(Exception::class);
+        $this->expectExceptionMessage('Invalid group schema: class for element "foo" is not a form element class');
+
+        $group = new class extends ElementsGroup {
+            protected static $schema = [
+                'foo' => [
+                    'class' => \stdClass::class,
+                ],
+            ];
+        };
+    }
+
+    public function testSchemaInvalidValidatorClass()
+    {
+        $this->expectException(Exception::class);
+        $this->expectExceptionMessage('Invalid group schema: validator class for element "foo" is not a validator class');
+
+        $group = new class extends ElementsGroup {
+            protected static $schema = [
+                'foo' => [
+                    'class' => TextField::class,
+                    'validator' => \stdClass::class,
+                ],
+            ];
+        };
+    }
+
+    public function testSchema()
+    {
+        $group = new testElementsGroupSchema;
+
+        $this->assertCount(4, $group);
+
+        // foo:
+
+        $this->assertInstanceOf(TextField::class, $group->foo);
+        $this->assertSame($group, $group->foo->getParent());
+
+        $this->assertSame('foo', $group->foo->getName());
+        $this->assertNull($group->foo->getValue());
+
+        $this->assertCount(2, $group->foo->getAttributes());
+        $this->assertSame('text', $group->foo->getAttributes()->type);
+        $this->assertSame('foo', $group->foo->getAttributes()->name);
+
+        $this->assertNull($group->foo->getOptions());
+
+        // field1:
+
+        $this->assertInstanceOf(TextField::class, $group->field1);
+        $this->assertSame($group, $group->field1->getParent());
+
+        $this->assertSame('name1', $group->field1->getName());
+        $this->assertSame('Title One', $group->field1->getTitle());
+        $this->assertSame('value1', $group->field1->getValue());
+
+        $this->assertCount(3, $group->field1->getAttributes());
+        $this->assertSame('text', $group->field1->getAttributes()->type);
+        $this->assertSame('Title One', $group->field1->getAttributes()->title);
+        $this->assertSame('name1', $group->field1->getAttributes()->name);
+
+        $this->assertNull($group->foo->getOptions());
+
+        // field2 :
+
+        $this->assertInstanceOf(TextareaField::class, $group->field2);
+        $this->assertSame($group, $group->field2->getParent());
+
+        $this->assertSame('field2', $group->field2->getName());
+        $this->assertNull($group->field2->getValue());
+
+        $this->assertCount(3, $group->field2->getAttributes());
+        $this->assertSame('field2', $group->field2->getAttributes()->name);
+        $this->assertSame('bar', $group->field2->getAttributes()->foo);
+        $this->assertSame('42', $group->field2->getAttributes()->baz);
+
+        $this->assertCount(2, $group->field2->getOptions());
+        $this->assertSame('bar', $group->field2->getOptions()->foo);
+        $this->assertSame(42, $group->field2->getOptions()->baz);
+
+        // field3 :
+
+        $this->assertInstanceOf(EmailField::class, $group->field3);
+        $this->assertSame($group, $group->field3->getParent());
+
+        $this->assertSame('field3', $group->field3->getName());
+        $this->assertSame('it-is-not-email!', $group->field3->getValue());
+
+        $this->assertFalse($group->field3->errors()->empty());
+        $this->assertCount(1, $group->field3->errors());
+        $this->assertInstanceOf(ValidationError::class, $group->field3->errors()[0]);
+        $this->assertSame($group->field3, $group->field3->errors()[0]->getElement());
+        $this->assertSame($group->field3->getValue(), $group->field3->errors()[0]->getValue());
+    }
+
+    public function testNestedGroup()
+    {
+        $group = new testElementsGroupNested();
+
+        $this->assertCount(2, $group);
+
+        // test:
+
+        $this->assertInstanceOf(TextField::class, $group->test);
+        $this->assertSame($group, $group->test->getParent());
+
+        $this->assertSame('test', $group->test->getName());
+        $this->assertNull($group->test->getValue());
+
+        // inner:
+
+        $this->assertInstanceOf(ElementsGroup::class, $group->inner);
+        $this->assertSame($group, $group->inner->getParent());
+        $this->assertCount(4, $group->inner);
+    }
+
+}

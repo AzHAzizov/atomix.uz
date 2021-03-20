@@ -1,8 +1,12 @@
 <?php
 
+require __DIR__ . '/vendor/autoload.php';
 
-function __autoload($class)
-{
-    require __DIR__.DIRECTORY_SEPARATOR.str_replace('\\', '/', $class) . '.php';
-    
-}
+spl_autoload_register(function ($class) {
+
+    $direction = __DIR__ . '/' . str_replace('\\', '/', $class) . '.php';
+
+    if (file_exists($direction)) {
+        require $direction;
+    }
+});

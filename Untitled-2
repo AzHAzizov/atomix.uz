@@ -1,0 +1,56 @@
+
+Переменные определленные в вклучающем файле будут доступны в включаемым 
+
+
+<?php
+
+
+class Errors extends Exception implements Countable
+{
+    protected array $errors = [];
+
+    public function addError(Throwable $er)
+    {
+        $this->errors[] = $er;
+    }
+
+
+    public function getErrors(): array
+    {
+        return $this->errors;
+    }
+
+    public function count()
+    {
+        return count($this->errors);
+    }
+}
+
+
+function validate(int $x)
+{
+    $errors = new Errors();
+
+    if ($x <= 0) {
+        $errors->addError(new Exception('Число должно быть больше 0'));
+    }
+
+    if ($x % 2 !== 0) {
+        $errors->addError(new Exception('Число должен быть четным'));
+    }
+
+    if ($errors->count() > 0) {
+        throw $errors;
+    }
+
+    return $x;
+}
+
+
+try {
+    echo validate(-11);
+} catch (Errors $ex) {
+    foreach ($ex->getErrors() as $error) {
+        echo $error->getMessage();
+    }
+}

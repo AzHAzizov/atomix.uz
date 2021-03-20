@@ -1,0 +1,23 @@
+<phpunit
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/latest/phpunit.xsd"
+        bootstrap="autoload.php"
+>
+
+    <testsuites>
+        <testsuite name="Fs">
+            <directory phpVersionOperator=">=" phpVersion="7.4">Fs</directory>
+        </testsuite>
+    </testsuites>
+
+    <filter>
+        <whitelist processUncoveredFilesFromWhitelist="true">
+            <directory>../src</directory>
+        </whitelist>
+    </filter>
+
+    <logging>
+        <log type="coverage-clover" target="clover.xml"/>
+    </logging>
+
+</phpunit>
